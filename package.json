@@ -1,0 +1,40 @@
+{
+	"name": "node-ssh-tunnel",
+	"version": "1.0.4",
+	"description": "",
+	"main": "lib/index.js",
+	"module": "es/index.js",
+	"types": "es/index.d.ts",
+	"type": "module",
+	"publishConfig": {
+		"registry": "https://registry.npmjs.org"
+	},
+	"scripts": {
+		"format": "prettier ./**/*.{js,jsx,tx,tsx} --write",
+		"lib": "tsc -outDir lib --target es5",
+		"es": "tsc -outDir es --target es2024",
+		"build": "pnpm run lib && pnpm run es"
+	},
+	"keywords": [
+		"ssh",
+		"tunnel",
+		"node-ssh",
+		"ssh-tunnel",
+		"node-ssh-tunnel"
+	],
+	"author": "wangzhen",
+	"license": "MIT",
+	"dependencies": {
+		"node-ssh": "^13.2.0",
+		"ssh2": "^1.16.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.1",
+		"@types/ssh2": "^1.15.1",
+		"eslint": "^9.16.0",
+		"nodemon": "^3.1.7",
+		"prettier": "3.4.2",
+		"tsx": "^4.19.2",
+		"typescript": "^5.7.2"
+	}
+}

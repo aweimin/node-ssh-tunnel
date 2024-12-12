@@ -1,0 +1,10 @@
+# 忽略jsduck
+.temp
+# 忽略所有压缩后的文件
+**/*.min.{js,css}
+**/*.svg
+
+**/node_modules/**
+**/.pnpm/**
+**/build/**
+**/package.json

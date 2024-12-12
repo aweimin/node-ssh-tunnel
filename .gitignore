@@ -1,0 +1,7 @@
+es/
+.pnpm/
+.pnpm-store/
+node_modules/
+.npmrc
+logs
+lib/

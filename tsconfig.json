@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"lib": ["es6", "es7", "esnext", "dom"],
+		"allowJs": true,
+		"baseUrl": "./",
+		"jsx": "react-jsx",
+		"declaration": true,
+		"outDir": "./build",
+		"strict": true,
+		"strictNullChecks": true,
+		"module": "esnext",
+		"moduleResolution": "node",
+		"experimentalDecorators": true,
+		"noUnusedParameters": false,
+		"noUnusedLocals": false,
+		"noImplicitAny": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "lib", "es", "test", "cover", "build"]
+}

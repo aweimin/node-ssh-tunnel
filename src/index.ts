@@ -111,6 +111,11 @@ export const createTunnel = async (
 					sshConnection = await createSSHConnection(sshOptionslocal);
 					addListenerSshConnection(sshConnection);
 				});
+				sshConnection.on('close', async () => {
+					// sshConnection.isBroken = true;
+					sshConnection = await createSSHConnection(sshOptionslocal);
+					addListenerSshConnection(sshConnection);
+				});
 			}
 		}
 
@@ -132,7 +137,13 @@ export const createTunnel = async (
 					});
 				}
 				server.on('connection', onConnectionHandler);
-				server.on('close', () => sshConnection.end());
+				server.on('close', () => {
+					// sshConnection.end();
+					console.log(
+						'close tunel: ',
+						`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
+					);
+				});
 			}
 			console.log(
 				'create tunel success: ',
@@ -153,7 +164,7 @@ export const createTunnel = async (
 						if (server) {
 							server.close();
 						}
-						throw err;
+						// throw err;
 					} else {
 						clientConnection.pipe(stream).pipe(clientConnection);
 					}

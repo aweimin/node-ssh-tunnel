@@ -94,27 +94,30 @@ export const createTunnel = async (
 		return Object.assign({ dstAddr: '127.0.0.1', srcAddr: '0.0.0.0' }, item);
 	});
 
-	const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: false }, tunnelOptions || {});
+	const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: true }, tunnelOptions || {});
 
 	return new Promise(async function (resolve, reject) {
-		let sshConnection: Client;
+		let sshConnection: Client | null;
 		try {
 			sshConnection = await createSSHConnection(sshOptionslocal);
 			addListenerSshConnection(sshConnection);
 		} catch (e) {
 			return reject(e);
 		}
-		function addListenerSshConnection(sshConnection: Client) {
+		function addListenerSshConnection(sshConnection_: Client) {
 			if (tunnelOptionsLocal.reconnectOnError) {
-				sshConnection.on('error', async () => {
+				sshConnection_.on('error', async () => {
+					sshConnection = null;
 					// sshConnection.isBroken = true;
+					console.log('sshConnection', 'error');
 					sshConnection = await createSSHConnection(sshOptionslocal);
 					addListenerSshConnection(sshConnection);
+					console.log('sshConnection', 'reconnect');
 				});
-				sshConnection.on('close', async () => {
+				sshConnection_.on('close', async () => {
 					// sshConnection.isBroken = true;
-					sshConnection = await createSSHConnection(sshOptionslocal);
-					addListenerSshConnection(sshConnection);
+					//sshConnection = await createSSHConnection(sshOptionslocal);
+					//addListenerSshConnection(sshConnection);
 				});
 			}
 		}
@@ -158,17 +161,56 @@ export const createTunnel = async (
 				// if (sshConnection.isBroken) {
 				// 	return;
 				// }
-
-				sshConnection.forwardOut(item.srcAddr, item.srcPort, item.dstAddr, item.dstPort, (err, stream) => {
-					if (err) {
-						if (server) {
-							server.close();
+				if (sshConnection) {
+					try {
+						sshConnection.forwardOut(
+							item.srcAddr,
+							item.srcPort,
+							item.dstAddr,
+							item.dstPort,
+							(err, stream) => {
+								if (err) {
+									// if (server) {
+									// 	server.close();
+									// }
+									// throw err;
+									console.log(err.message);
+									clientConnection.on('close', () => {});
+									clientConnection.on('error', () => {});
+									try {
+										clientConnection.end();
+									} catch (e) {
+										console.log(e);
+									}
+								} else {
+									clientConnection.on('close', () => {
+										stream.end();
+									});
+									clientConnection.on('error', () => {
+										stream.end();
+									});
+									clientConnection.pipe(stream).pipe(clientConnection);
+								}
+							}
+						);
+					} catch (e) {
+						clientConnection.on('close', () => {});
+						clientConnection.on('error', () => {});
+						try {
+							clientConnection.end();
+						} catch (e) {
+							console.log(e);
 						}
-						// throw err;
-					} else {
-						clientConnection.pipe(stream).pipe(clientConnection);
 					}
-				});
+				} else {
+					clientConnection.on('close', () => {});
+					clientConnection.on('error', () => {});
+					try {
+						clientConnection.end();
+					} catch (e) {
+						console.log(e);
+					}
+				}
 			}
 		});
 

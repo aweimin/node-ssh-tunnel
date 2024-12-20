@@ -37,22 +37,6 @@
 			},
 		},
 		{
-			// 所有 php 文件
-			files: "*.php",
-			options: {
-				parser: "php",
-
-				// php 版本
-				phpVersion: "8.1",
-
-				// php 尾部逗号, 走默认配置, 默认为 true, 即保留尾部逗号
-				// trailingCommaPHP: false,
-
-				// PHP, 纯字符串使用单引号，模版字符串使用双引号
-				singleQuote: true,
-			},
-		},
-		{
 			// 所有 xml 文件 --> 使用 XML Tools 插件格式化
 			files: "*.xml",
 			options: {

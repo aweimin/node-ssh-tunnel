@@ -1,13 +1,18 @@
 {
 	"name": "node-ssh-tunnel",
-	"version": "1.0.6",
+	"version": "1.0.7",
 	"description": "",
-	"main": "lib/index.js",
-	"module": "es/index.js",
 	"types": "es/index.d.ts",
 	"type": "module",
 	"publishConfig": {
 		"registry": "https://registry.npmjs.org"
+	},
+	"exports": {
+		".": {
+			"import": "./es/index.js",
+			"require": "./lib/index.js"
+		},
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"lib/",
@@ -22,7 +27,7 @@
 	},
 	"scripts": {
 		"format": "prettier ./**/*.{js,jsx,tx,tsx} --write",
-		"lib": "tsc -outDir lib --target es5",
+		"lib": "tsc -outDir lib --target es6 --module commonjs",
 		"es": "tsc -outDir es --target es2024",
 		"build": "pnpm run lib && pnpm run es"
 	},
@@ -40,10 +45,10 @@
 		"ssh2": "^1.16.0"
 	},
 	"devDependencies": {
-		"@types/node": "^22.10.1",
+		"@types/node": "^22.10.2",
 		"@types/ssh2": "^1.15.1",
-		"eslint": "^9.16.0",
-		"nodemon": "^3.1.7",
+		"eslint": "^9.17.0",
+		"nodemon": "^3.1.9",
 		"prettier": "3.4.2",
 		"tsx": "^4.19.2",
 		"typescript": "^5.7.2"

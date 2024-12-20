@@ -59,7 +59,7 @@ const createServer = async (options: ListenOptions) => {
 
 	return new Promise<Server>((resolve, reject) => {
 		let server = net.createServer();
-		let errorHandler = function (error: any) {
+		let errorHandler = (error: any) => {
 			reject(error);
 		};
 		server.on('error', errorHandler);
@@ -74,10 +74,12 @@ const createServer = async (options: ListenOptions) => {
 };
 
 const createSSHConnection = async (config: SshOptions) => {
-	return new Promise<Client>(function (resolve, reject) {
+	return new Promise<Client>((resolve, reject) => {
 		let conn = new Client();
 		conn.on('ready', () => resolve(conn));
-		conn.on('error', reject);
+		conn.on('error', (error) => {
+			reject(error);
+		});
 		conn.connect(config);
 	});
 };
@@ -96,15 +98,9 @@ export const createTunnel = async (
 
 	const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: true }, tunnelOptions || {});
 
-	return new Promise(async function (resolve, reject) {
+	return new Promise(async (resolve, reject) => {
 		let sshConnection: Client | null;
-		try {
-			sshConnection = await createSSHConnection(sshOptionslocal);
-			addListenerSshConnection(sshConnection);
-		} catch (e) {
-			return reject(e);
-		}
-		function addListenerSshConnection(sshConnection_: Client) {
+		const addListenerSshConnection = (sshConnection_: Client) => {
 			if (tunnelOptionsLocal.reconnectOnError) {
 				sshConnection_.on('error', async () => {
 					sshConnection = null;
@@ -120,40 +116,39 @@ export const createTunnel = async (
 					//addListenerSshConnection(sshConnection);
 				});
 			}
+		};
+		try {
+			sshConnection = await createSSHConnection(sshOptionslocal);
+			addListenerSshConnection(sshConnection);
+		} catch (e) {
+			return reject(e);
 		}
 
 		const servers = forwardOptionsLocal.map(async (item) => {
 			const serverOptions: ListenOptions = { host: item.srcAddr, port: item.srcPort };
 			let server: Server;
-			try {
-				server = await createServer(serverOptions);
-				addListenerServer(server);
-			} catch (e) {
-				return reject(e);
-			}
-
-			function addListenerServer(server: Server) {
+			const addListenerServer = (server_: Server) => {
 				if (tunnelOptionsLocal.reconnectOnError) {
-					server.on('error', async () => {
+					server_.on('error', async () => {
 						server = await createServer(serverOptions);
 						addListenerServer(server);
 					});
 				}
-				server.on('connection', onConnectionHandler);
-				server.on('close', () => {
+				server_.on('connection', onConnectionHandler);
+				server_.on('close', () => {
 					// sshConnection.end();
 					console.log(
 						'close tunel: ',
 						`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
 					);
 				});
-			}
+			};
 			console.log(
 				'create tunel success: ',
 				`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
 			);
 
-			function onConnectionHandler(clientConnection: Socket) {
+			const onConnectionHandler = (clientConnection: Socket) => {
 				if (tunnelOptionsLocal.autoClose) {
 					autoClose(server, clientConnection);
 				}
@@ -211,6 +206,12 @@ export const createTunnel = async (
 						console.log(e);
 					}
 				}
+			};
+			try {
+				server = await createServer(serverOptions);
+				addListenerServer(server);
+			} catch (e) {
+				return reject(e);
 			}
 		});
 

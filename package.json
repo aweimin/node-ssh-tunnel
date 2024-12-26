@@ -1,6 +1,6 @@
 {
 	"name": "node-ssh-tunnel",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"description": "",
 	"types": "es/index.d.ts",
 	"type": "module",

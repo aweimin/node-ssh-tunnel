@@ -51,6 +51,7 @@ Example:
 ```js
 const tunnelOptions = {
 	autoClose: true,
+	reconnectOnError: true,
 };
 ```
 
@@ -59,6 +60,8 @@ Its useful for tooling or scripts that require a temporary ssh tunnel to operate
 For example a mongodump.
 
 Set this option to **false** will keep the server alive until you close it manually.
+
+_reconnectOnError_ - reconnect on error. default true
 
 ### SSH client options
 
@@ -121,6 +124,7 @@ Example:
 ```js
 const tunnelOptions = {
 	autoClose: true,
+	reconnectOnError: true,
 };
 
 const sshOptions = {
@@ -193,6 +197,7 @@ const port = 9094;
 
 const tunnelOptions = {
 	autoClose: true,
+	reconnectOnError: true,
 };
 const sshOptions = {
 	host: '192.168.8.88',
@@ -221,7 +226,7 @@ servers.forEach((server) => {
 If you just searching for an easy way to forward a remote port to your local machine try the following:
 
 ```js
-import { createTunnel, SshOptions } from 'node-ssh-tunnel';
+import { createTunnel, SshOptions, TunnelOptions } from 'node-ssh-tunnel';
 const sshOptions = {
 	host: '192.168.8.88',
 	port: 22,
@@ -229,7 +234,11 @@ const sshOptions = {
 	password: 'nodejsrules',
 };
 
-const mySimpleTunnel = async (sshOptions:SshOptions, port:number, autoClose = false) => {
+const tunnelOptions = {
+	autoClose: false,
+	reconnectOnError: true,
+};
+const mySimpleTunnel = async (sshOptions:SshOptions, port:number, tunnelOptions?:TunnelOptions) => {
 	let forwardOptions = {
 		srcAddr: '127.0.0.1',
 		srcPort: port,
@@ -237,16 +246,12 @@ const mySimpleTunnel = async (sshOptions:SshOptions, port:number, autoClose = fa
 		dstPort: port,
 	};
 
-	let tunnelOptions = {
-		autoClose: autoClose,
-	};
-
 	return createTunnel(sshOptions, forwardOptions, tunnelOptions);
 };
 
-await mySimpleTunnel(sshOptions, 9094);
+mySimpleTunnel(sshOptions, 9094);
 
-const myMultipleTunnel = async (sshOptions:SshOptions, ports:number[], autoClose = false) => {
+const myMultipleTunnel = async (sshOptions:SshOptions, ports:number[], tunnelOptions?:TunnelOptions) => {
 	let forwardOptions = ports.map((port) => {
 		return {
 			srcAddr: '127.0.0.1',
@@ -256,12 +261,8 @@ const myMultipleTunnel = async (sshOptions:SshOptions, ports:number[], autoClose
 		};
 	});
 
-	let tunnelOptions = {
-		autoClose: autoClose,
-	};
-
 	return createTunnel(sshOptions, forwardOptions, tunnelOptions);
 };
 
-await myMultipleTunnel(sshOptions, [9094, 9095]);
+myMultipleTunnel(sshOptions, [9095, 9096]);
 ```

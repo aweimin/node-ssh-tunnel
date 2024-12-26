@@ -13,6 +13,10 @@ export interface TunnelOptions {
 	 */
 	autoClose?: boolean;
 
+	/**
+	 * If set to true, when ssh connection is broken, the tunnel will be re-created.
+	 * @default false
+	 */
 	reconnectOnError?: boolean;
 }
 
@@ -83,6 +87,19 @@ const createSSHConnection = async (config: SshOptions) => {
 		conn.connect(config);
 	});
 };
+const reCreateSSHConnection = async (config: SshOptions) => {
+	return new Promise<Client>(async (resolve, reject) => {
+		try {
+			console.log('ReCreateSSHConnection');
+			const conn = await createSSHConnection(config);
+			resolve(conn);
+		} catch (e) {
+			setTimeout(() => {
+				resolve(reCreateSSHConnection(config));
+			}, 1000);
+		}
+	});
+};
 
 export const createTunnel = async (
 	sshOptions: SshOptions,
@@ -106,9 +123,9 @@ export const createTunnel = async (
 					sshConnection = null;
 					// sshConnection.isBroken = true;
 					console.log('sshConnection', 'error');
-					sshConnection = await createSSHConnection(sshOptionslocal);
+					sshConnection = await reCreateSSHConnection(sshOptionslocal);
 					addListenerSshConnection(sshConnection);
-					console.log('sshConnection', 'reconnect');
+					console.log('sshConnection', 'reconnected');
 				});
 				sshConnection_.on('close', async () => {
 					// sshConnection.isBroken = true;
@@ -121,7 +138,7 @@ export const createTunnel = async (
 			sshConnection = await createSSHConnection(sshOptionslocal);
 			addListenerSshConnection(sshConnection);
 		} catch (e) {
-			return reject(e);
+			return reject('用户名或密码错误, 请检查你的配置信息');
 		}
 
 		const servers = forwardOptionsLocal.map(async (item) => {

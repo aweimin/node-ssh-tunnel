@@ -249,7 +249,7 @@ const mySimpleTunnel = async (sshOptions:SshOptions, port:number, tunnelOptions?
 	return createTunnel(sshOptions, forwardOptions, tunnelOptions);
 };
 
-mySimpleTunnel(sshOptions, 9094);
+mySimpleTunnel(sshOptions, 9094, tunnelOptions);
 
 const myMultipleTunnel = async (sshOptions:SshOptions, ports:number[], tunnelOptions?:TunnelOptions) => {
 	let forwardOptions = ports.map((port) => {
@@ -264,5 +264,5 @@ const myMultipleTunnel = async (sshOptions:SshOptions, ports:number[], tunnelOpt
 	return createTunnel(sshOptions, forwardOptions, tunnelOptions);
 };
 
-myMultipleTunnel(sshOptions, [9095, 9096]);
+myMultipleTunnel(sshOptions, [9095, 9096], tunnelOptions);
 ```

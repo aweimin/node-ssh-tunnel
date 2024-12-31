@@ -165,7 +165,7 @@ export const createTunnel = async (
 				`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
 			);
 
-			const onConnectionHandler = (clientConnection: Socket) => {
+			const onConnectionHandler = (clientConnection: Socket, num = 0) => {
 				if (tunnelOptionsLocal.autoClose) {
 					autoClose(server, clientConnection);
 				}
@@ -214,6 +214,10 @@ export const createTunnel = async (
 							console.log(e);
 						}
 					}
+				} else if (num < 20) {
+					setTimeout(() => {
+						onConnectionHandler(clientConnection, num + 1);
+					}, 500);
 				} else {
 					clientConnection.on('close', () => {});
 					clientConnection.on('error', () => {});

@@ -8,3 +8,7 @@
 **/.pnpm/**
 **/build/**
 **/package.json
+lib/**
+es/**
+dist/**
+pnpm-lock.yaml

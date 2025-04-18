@@ -40,6 +40,7 @@ export default [
 				rootDir: 'src',
 				outDir: 'lib',
 			}),
+			terser(), // 代码压缩
 		],
 		external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 	},
@@ -61,32 +62,33 @@ export default [
 				rootDir: 'src',
 				outDir: 'es',
 			}),
+			terser(), // 代码压缩
 		],
 		external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
 	},
 
 	// UMD 输出 (开发版 - 未压缩)
-	{
-		input,
-		output: {
-			file: pkg.unpkg.replace('.min', ''), // 通常是 'dist/index.umd.js'
-			format: 'umd',
-			name: umdName, // 全局变量名
-			sourcemap: false,
-			globals: {}, // 可以在这里指定外部依赖的全局变量名
-		},
-		plugins: [
-			resolve(),
-			commonjs(),
-			typescript({
-				...tsconfig.compilerOptions,
-				declaration: false,
-				rootDir: 'src',
-				outDir: 'dist',
-			}),
-		],
-		external: [...Object.keys(pkg.peerDependencies || {}), 'ssh2'], // UMD 通常打包所有非 peer 依赖
-	},
+	// {
+	// 	input,
+	// 	output: {
+	// 		file: pkg.unpkg.replace('.min', ''), // 通常是 'dist/index.umd.js'
+	// 		format: 'umd',
+	// 		name: umdName, // 全局变量名
+	// 		sourcemap: false,
+	// 		globals: {}, // 可以在这里指定外部依赖的全局变量名
+	// 	},
+	// 	plugins: [
+	// 		resolve(),
+	// 		commonjs(),
+	// 		typescript({
+	// 			...tsconfig.compilerOptions,
+	// 			declaration: false,
+	// 			rootDir: 'src',
+	// 			outDir: 'dist',
+	// 		}),
+	// 	],
+	// 	external: [...Object.keys(pkg.peerDependencies || {}), 'ssh2'], // UMD 通常打包所有非 peer 依赖
+	// },
 
 	// UMD 输出 (生产版 - 压缩)
 	{

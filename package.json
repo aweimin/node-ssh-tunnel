@@ -2,6 +2,9 @@
 	"name": "node-ssh-tunnel",
 	"version": "1.0.12",
 	"description": "",
+	"main": "lib/index.js",
+	"module": "es/index.js",
+	"unpkg": "dist/index.umd.min.js",
 	"types": "es/index.d.ts",
 	"type": "module",
 	"publishConfig": {
@@ -29,7 +32,8 @@
 		"format": "prettier ./**/*.{js,jsx,tx,tsx} --write",
 		"lib": "tsc -outDir lib --target es6 --module commonjs",
 		"es": "tsc -outDir es --target es2024",
-		"build": "pnpm run lib && pnpm run es"
+		"build": "pnpm run lib && pnpm run es",
+		"rollup": "rollup -c"
 	},
 	"keywords": [
 		"ssh",
@@ -45,11 +49,18 @@
 		"ssh2": "^1.16.0"
 	},
 	"devDependencies": {
+		"@rollup/plugin-commonjs": "^28.0.3",
+		"@rollup/plugin-json": "^6.1.0",
+		"@rollup/plugin-node-resolve": "^16.0.1",
+		"@rollup/plugin-terser": "^0.4.4",
+		"@rollup/plugin-typescript": "^12.1.2",
 		"@types/node": "^22.14.1",
 		"@types/ssh2": "^1.15.5",
 		"eslint": "^9.24.0",
 		"nodemon": "^3.1.9",
 		"prettier": "3.5.3",
+		"rollup": "^4.40.0",
+		"tslib": "^2.8.1",
 		"tsx": "^4.19.3",
 		"typescript": "^5.8.3"
 	}

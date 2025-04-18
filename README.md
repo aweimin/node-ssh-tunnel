@@ -21,6 +21,10 @@ lenchvolodymyr for the idea of the dynamic port mapping.
 
 ### Changelog
 
+##### 1.0.11
+
+add support close method
+
 ##### 1.0.0
 
 - Improved Typescript support

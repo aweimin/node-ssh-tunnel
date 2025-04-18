@@ -1,4 +1,4 @@
-import net, { ListenOptions, Server, Socket } from 'net';
+import { ListenOptions, Server, Socket, createServer } from 'net';
 import { Client, ConnectConfig } from 'ssh2';
 
 export type SshOptions = ConnectConfig;
@@ -54,15 +54,15 @@ const autoClose = (server: Server, connection: Socket) => {
 	});
 };
 
-const createServer = async (options: ListenOptions) => {
+const createLocalServer = async (options: ListenOptions) => {
 	let serverOptions: any = Object.assign({}, options);
 
-	if (!serverOptions.port && !serverOptions.path) {
+	if (!serverOptions.port && !serverOptions.host) {
 		serverOptions = null;
 	}
 
 	return new Promise<Server>((resolve, reject) => {
-		let server = net.createServer();
+		let server = createServer();
 		let errorHandler = (error: any) => {
 			reject(error);
 		};
@@ -115,39 +115,39 @@ export const createTunnel = async (
 
 	const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: true }, tunnelOptions || {});
 
-	return new Promise(async (resolve, reject) => {
-		let sshConnection: Client | null;
-		const addListenerSshConnection = (sshConnection_: Client) => {
-			if (tunnelOptionsLocal.reconnectOnError) {
-				sshConnection_.on('error', async () => {
-					sshConnection = null;
-					// sshConnection.isBroken = true;
-					console.log('sshConnection', 'error');
-					sshConnection = await reCreateSSHConnection(sshOptionslocal);
-					addListenerSshConnection(sshConnection);
-					console.log('sshConnection', 'reconnected');
-				});
-				sshConnection_.on('close', async () => {
-					// sshConnection.isBroken = true;
-					//sshConnection = await createSSHConnection(sshOptionslocal);
-					//addListenerSshConnection(sshConnection);
-				});
-			}
-		};
-		try {
-			sshConnection = await createSSHConnection(sshOptionslocal);
-			addListenerSshConnection(sshConnection);
-		} catch (e) {
-			return reject('用户名或密码错误, 请检查你的配置信息');
+	let sshConnection: Client | undefined;
+	const addListenerSshConnection = (sshConnection_: Client) => {
+		if (tunnelOptionsLocal.reconnectOnError) {
+			sshConnection_.on('error', async () => {
+				sshConnection = undefined;
+				// sshConnection.isBroken = true;
+				console.log('sshConnection', 'error');
+				sshConnection = await reCreateSSHConnection(sshOptionslocal);
+				addListenerSshConnection(sshConnection);
+				console.log('sshConnection', 'reconnected');
+			});
+			sshConnection_.on('close', async () => {
+				// sshConnection.isBroken = true;
+				//sshConnection = await createSSHConnection(sshOptionslocal);
+				//addListenerSshConnection(sshConnection);
+			});
 		}
+	};
+	try {
+		sshConnection = await createSSHConnection(sshOptionslocal);
+		addListenerSshConnection(sshConnection);
+	} catch (e) {
+		return Promise.reject('用户名或密码错误, 请检查你的配置信息');
+	}
 
-		const servers = forwardOptionsLocal.map(async (item) => {
+	const servers: (Server | undefined)[] = await Promise.all(
+		forwardOptionsLocal.map(async (item) => {
 			const serverOptions: ListenOptions = { host: item.srcAddr, port: item.srcPort };
 			let server: Server;
 			const addListenerServer = (server_: Server) => {
 				if (tunnelOptionsLocal.reconnectOnError) {
 					server_.on('error', async () => {
-						server = await createServer(serverOptions);
+						server = await createLocalServer(serverOptions);
 						addListenerServer(server);
 					});
 				}
@@ -191,6 +191,7 @@ export const createTunnel = async (
 									clientConnection.on('error', () => {});
 									try {
 										clientConnection.end();
+										clientConnection.destroy();
 									} catch (e) {
 										console.log(e);
 									}
@@ -210,6 +211,7 @@ export const createTunnel = async (
 						clientConnection.on('error', () => {});
 						try {
 							clientConnection.end();
+							clientConnection.destroy();
 						} catch (e) {
 							console.log(e);
 						}
@@ -223,21 +225,42 @@ export const createTunnel = async (
 					clientConnection.on('error', () => {});
 					try {
 						clientConnection.end();
+						clientConnection.destroy();
 					} catch (e) {
 						console.log(e);
 					}
 				}
 			};
 			try {
-				server = await createServer(serverOptions);
+				server = await createLocalServer(serverOptions);
 				addListenerServer(server);
+				return server;
 			} catch (e) {
-				return reject(e);
+				console.log(e);
+				return undefined;
+			}
+		})
+	);
+	const close = () => {
+		servers.forEach((server) => {
+			if (server) {
+				try {
+					server.close();
+				} catch (e) {
+					console.log(e);
+				}
 			}
 		});
-
-		resolve({ servers, sshConnection });
-	});
+		if (sshConnection) {
+			try {
+				sshConnection.end();
+				sshConnection.destroy();
+			} catch (e) {
+				console.log(e);
+			}
+		}
+	};
+	return { servers, sshConnection, close };
 };
 
 export default createTunnel;

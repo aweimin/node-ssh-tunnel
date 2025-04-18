@@ -8,16 +8,18 @@ const __dirname = dirname(__filename);
 
 // 获取远程服务器配置信息 此处建议通过配置文件获取
 const sshOptions = {
-	host: '192.168.4.70',
+	host: 'www.aweimin.com',
 	username: 'root',
-	password: 'xxxxxx',
+	password: 'Wangzhen-0807',
 };
 
 const host = '0.0.0.0';
 const ports = [3306, 888, 9200];
-await createTunnel(
+const { sshConnection, servers, close } = await createTunnel(
 	sshOptions,
 	ports.map((port) => ({ srcPort: port, dstPort: port, srcAddr: host, dstAddr: host })),
 	{ autoClose: false, reconnectOnError: true }
 );
+// close();
+
 console.log('ssh tunnel created');

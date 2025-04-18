@@ -58,7 +58,7 @@ export default [
 			commonjs(),
 			typescript({
 				...tsconfig.compilerOptions,
-				declaration: false, // 只在 CJS 构建中生成声明文件
+				declaration: true, // 只在 CJS 构建中生成声明文件
 				rootDir: 'src',
 				outDir: 'es',
 			}),

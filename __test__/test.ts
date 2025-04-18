@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 // 获取远程服务器配置信息 此处建议通过配置文件获取
 const sshOptions = {
-	host: 'www.aweimin.com',
+	host: 'www..com',
 	username: 'root',
 	password: 'Wangzhen-0807',
 };

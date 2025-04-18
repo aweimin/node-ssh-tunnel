@@ -6,5 +6,3 @@ node_modules/
 logs
 lib/
 dist/
-pnpm-lock.yaml
-___tests__/test.ts

@@ -6,3 +6,4 @@ node_modules/
 logs
 lib/
 dist/
+___tests__/

@@ -29,10 +29,12 @@
 		"url": "git+https://github.com/aweimin/node-ssh-tunnel.git"
 	},
 	"scripts": {
+		"clean": "rimraf lib es dist",
+		"clean:all": "pnpm clean && rimraf  node_modules pnpm-lock.yml",
 		"format": "prettier ./**/*.{js,jsx,tx,tsx} --write",
 		"lib": "tsc -outDir lib --target es6 --module commonjs",
 		"es": "tsc -outDir es --target es2024",
-		"build": "pnpm run lib && pnpm run es",
+		"build": "pnpm clean && pnpm  rollup",
 		"rollup": "rollup -c"
 	},
 	"keywords": [
@@ -59,6 +61,7 @@
 		"eslint": "^9.24.0",
 		"nodemon": "^3.1.9",
 		"prettier": "3.5.3",
+		"rimraf": "^6.0.1",
 		"rollup": "^4.40.0",
 		"tslib": "^2.8.1",
 		"tsx": "^4.19.3",

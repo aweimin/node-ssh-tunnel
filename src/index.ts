@@ -80,7 +80,10 @@ const createLocalServer = async (options: ListenOptions) => {
 const createSSHConnection = async (config: SshOptions) => {
 	return new Promise<Client>((resolve, reject) => {
 		let conn = new Client();
-		conn.on('ready', () => resolve(conn));
+		conn.on('ready', () => {
+			conn.removeListener('error', reject);
+			resolve(conn);
+		});
 		conn.on('error', (error) => {
 			reject(error);
 		});
@@ -100,7 +103,194 @@ const reCreateSSHConnection = async (config: SshOptions) => {
 		}
 	});
 };
+export class SSHError extends Error {
+	private code: string | undefined;
+	constructor(message: string, code?: string) {
+		super(message);
+		this.code = code;
+	}
+}
+export class NodeSSHTunnel {
+	private connection: Client | null;
+	private sshOptions: SshOptions | null;
+	private servers: (Server | undefined)[] | null;
+	constructor() {
+		this.connection = null;
+		this.sshOptions = null;
+		this.servers = null;
+	}
+	getConnection() {
+		const { connection } = this;
+		if (connection === null) {
+			throw new Error('Not connected to server');
+		}
+		return connection;
+	}
+	isConnected() {
+		return this.connection != null;
+	}
+	async connect(sshOptions: SshOptions) {
+		const sshOptionslocal = Object.assign({ port: 22, username: 'root' }, sshOptions);
+		const connection = new Client();
 
+		await new Promise((resolve, reject) => {
+			connection.on('error', reject);
+			connection.on('ready', () => {
+				this.connection = connection;
+				connection.removeListener('error', reject);
+				resolve(true);
+			});
+			connection.on('end', () => {
+				if (this.connection === connection) {
+					this.connection = null;
+				}
+			});
+			connection.on('close', () => {
+				if (this.connection === connection) {
+					this.connection = null;
+				}
+				reject(new SSHError('No response from server', 'ETIMEDOUT'));
+			});
+			connection.connect(sshOptionslocal);
+		});
+		return this;
+	}
+	async reConnect() {
+		return new Promise<Client>(async (resolve, reject) => {
+			try {
+				console.log('ReCreateSSHConnection');
+				const conn = await createSSHConnection(this.sshOptions as SshOptions);
+				resolve(conn);
+			} catch (e) {
+				setTimeout(() => {
+					resolve(reCreateSSHConnection(this.sshOptions as SshOptions));
+				}, 1000);
+			}
+		});
+	}
+	async close() {
+		const { connection } = this;
+		if (connection !== null) {
+			try {
+				connection.removeAllListeners();
+				connection.end();
+				connection.destroy();
+			} catch (e) {
+				console.log(e);
+			}
+			this.connection = null;
+		}
+		this.servers?.forEach((server) => {
+			if (server) {
+				try {
+					server.close();
+				} catch (e) {
+					console.log(e);
+				}
+			}
+		});
+		this.servers = null;
+	}
+
+	async createTunnel(forwardOptions: ForwardOptions | ForwardOptions[], tunnelOptions?: TunnelOptions) {
+		if (this.connection === null) {
+			throw new Error('Not connected to server');
+		}
+		if (this.servers !== null) {
+			throw new Error('Tunnel already created');
+		}
+		this.connection.on('error', async (error) => {
+			if (tunnelOptionsLocal.reconnectOnError) {
+				console.log('ReconnectOnError');
+				this.connection = await this.reConnect();
+			} else {
+				console.log('Error');
+				console.log(error);
+			}
+		});
+		const forwardOptionsArray = Array.isArray(forwardOptions) ? forwardOptions : [forwardOptions];
+		const forwardOptionsLocal = forwardOptionsArray.map((item) => {
+			return Object.assign({ dstAddr: '127.0.0.1', srcAddr: '0.0.0.0' }, item);
+		});
+		const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: true }, tunnelOptions || {});
+		this.servers = await Promise.all(
+			forwardOptionsLocal.map(async (item) => {
+				const serverOptions: ListenOptions = { host: item.srcAddr, port: item.srcPort };
+				let server: Server;
+
+				const onConnectionHandler = (clientConnection: Socket, num = 0) => {
+					if (this.getConnection() !== null) {
+						const sshConnection = this.getConnection();
+						try {
+							sshConnection.forwardOut(
+								clientConnection.remoteAddress ?? item.srcAddr,
+								clientConnection.remotePort ?? item.srcPort,
+								item.dstAddr,
+								item.dstPort,
+								(err, stream) => {
+									if (err) {
+										console.log(err.message);
+										clientConnection.on('close', () => {});
+										clientConnection.on('error', () => {});
+										try {
+											clientConnection.end();
+											clientConnection.destroy();
+										} catch (e) {
+											console.log(e);
+										}
+									} else {
+										clientConnection.on('close', () => {
+											stream.end();
+										});
+										clientConnection.on('error', () => {
+											stream.end();
+										});
+										clientConnection.pipe(stream).pipe(clientConnection);
+									}
+								}
+							);
+						} catch (e) {
+							clientConnection.on('close', () => {});
+							clientConnection.on('error', () => {});
+							try {
+								clientConnection.end();
+								clientConnection.destroy();
+							} catch (e) {
+								console.log(e);
+							}
+						}
+					} else if (num < 20) {
+						setTimeout(() => {
+							onConnectionHandler(clientConnection, num + 1);
+						}, 500);
+					} else {
+						try {
+							clientConnection.end();
+							clientConnection.destroy();
+						} catch (e) {
+							console.log(e);
+						}
+					}
+				};
+				try {
+					server = await createLocalServer(serverOptions);
+					console.log(
+						'create tunel success: ',
+						`${item.srcAddr}:${item.srcPort} => ${this.sshOptions?.host}:${item.dstPort}`
+					);
+					server.on('connection', onConnectionHandler);
+					return server;
+				} catch (e) {
+					console.log(e);
+					return undefined;
+				}
+			})
+		);
+	}
+	async disconnect() {
+		this.close();
+	}
+}
 export const createTunnel = async (
 	sshOptions: SshOptions,
 	forwardOptions: ForwardOptions[] | ForwardOptions,
@@ -160,10 +350,6 @@ export const createTunnel = async (
 					);
 				});
 			};
-			console.log(
-				'create tunel success: ',
-				`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
-			);
 
 			const onConnectionHandler = (clientConnection: Socket, num = 0) => {
 				if (tunnelOptionsLocal.autoClose) {
@@ -176,8 +362,8 @@ export const createTunnel = async (
 				if (sshConnection) {
 					try {
 						sshConnection.forwardOut(
-							item.srcAddr,
-							item.srcPort,
+							clientConnection.remoteAddress ?? item.srcAddr,
+							clientConnection.remotePort ?? item.srcPort,
 							item.dstAddr,
 							item.dstPort,
 							(err, stream) => {
@@ -234,6 +420,10 @@ export const createTunnel = async (
 			try {
 				server = await createLocalServer(serverOptions);
 				addListenerServer(server);
+				console.log(
+					'create tunel success: ',
+					`${item.srcAddr}:${item.srcPort} => ${sshOptions.host}:${item.dstPort}`
+				);
 				return server;
 			} catch (e) {
 				console.log(e);
@@ -261,6 +451,16 @@ export const createTunnel = async (
 		}
 	};
 	return { servers, sshConnection, close };
+};
+export const createTunnelEx = async (
+	sshOptions: SshOptions,
+	forwardOptions: ForwardOptions[] | ForwardOptions,
+	tunnelOptions?: TunnelOptions
+) => {
+	const nst = new NodeSSHTunnel();
+	await nst.connect(sshOptions);
+	await nst.createTunnel(forwardOptions, tunnelOptions);
+	return nst;
 };
 
 export default createTunnel;

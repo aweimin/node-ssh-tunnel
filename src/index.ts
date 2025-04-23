@@ -76,7 +76,6 @@ const createLocalServer = async (options: ListenOptions) => {
 		});
 	});
 };
-
 const createSSHConnection = async (config: SshOptions) => {
 	return new Promise<Client>((resolve, reject) => {
 		let conn = new Client();
@@ -90,11 +89,14 @@ const createSSHConnection = async (config: SshOptions) => {
 		conn.connect(config);
 	});
 };
+let reconnecting = false;
 const reCreateSSHConnection = async (config: SshOptions) => {
+	reconnecting = true;
 	return new Promise<Client>(async (resolve, reject) => {
 		try {
 			console.log('ReCreateSSHConnection');
 			const conn = await createSSHConnection(config);
+			reconnecting = false;
 			resolve(conn);
 		} catch (e) {
 			setTimeout(() => {
@@ -114,6 +116,7 @@ export class NodeSSHTunnel {
 	private connection: Client | null;
 	private sshOptions: SshOptions | null;
 	private servers: (Server | undefined)[] | null;
+	private reconnecting: boolean = false;
 	constructor() {
 		this.connection = null;
 		this.sshOptions = null;
@@ -131,6 +134,7 @@ export class NodeSSHTunnel {
 	}
 	async connect(sshOptions: SshOptions) {
 		const sshOptionslocal = Object.assign({ port: 22, username: 'root' }, sshOptions);
+		this.sshOptions = sshOptionslocal;
 		const connection = new Client();
 
 		await new Promise((resolve, reject) => {
@@ -156,10 +160,12 @@ export class NodeSSHTunnel {
 		return this;
 	}
 	async reConnect() {
+		this.reconnecting = true;
 		return new Promise<Client>(async (resolve, reject) => {
 			try {
 				console.log('ReCreateSSHConnection');
 				const conn = await createSSHConnection(this.sshOptions as SshOptions);
+				this.reconnecting = false;
 				resolve(conn);
 			} catch (e) {
 				setTimeout(() => {
@@ -168,7 +174,7 @@ export class NodeSSHTunnel {
 			}
 		});
 	}
-	async close() {
+	async disconnect() {
 		const { connection } = this;
 		if (connection !== null) {
 			try {
@@ -180,16 +186,24 @@ export class NodeSSHTunnel {
 			}
 			this.connection = null;
 		}
-		this.servers?.forEach((server) => {
-			if (server) {
-				try {
-					server.close();
-				} catch (e) {
-					console.log(e);
+	}
+	async close() {
+		this.disconnect();
+		this.closeTunnel();
+	}
+	async closeTunnel() {
+		if (this.servers !== null) {
+			this.servers.forEach((server) => {
+				if (server) {
+					try {
+						server.close();
+					} catch (e) {
+						console.log(e);
+					}
 				}
-			}
-		});
-		this.servers = null;
+			});
+			this.servers = null;
+		}
 	}
 
 	async createTunnel(forwardOptions: ForwardOptions | ForwardOptions[], tunnelOptions?: TunnelOptions) {
@@ -199,15 +213,42 @@ export class NodeSSHTunnel {
 		if (this.servers !== null) {
 			throw new Error('Tunnel already created');
 		}
-		this.connection.on('error', async (error) => {
-			if (tunnelOptionsLocal.reconnectOnError) {
-				console.log('ReconnectOnError');
-				this.connection = await this.reConnect();
-			} else {
-				console.log('Error');
-				console.log(error);
-			}
-		});
+		const addListenerSshConnection = () => {
+			this.connection?.on('error', async (error) => {
+				this.connection?.removeAllListeners();
+				this.connection = null;
+				console.log('sshConnection', 'error');
+				if (this.reconnecting) {
+					return;
+				}
+				if (tunnelOptionsLocal.reconnectOnError) {
+					console.log('ReconnectOnError', 'start reconnect');
+					this.connection = await this.reConnect();
+					addListenerSshConnection();
+					console.log('sshConnection', 'reconnected');
+				} else {
+					console.log('Error', error);
+				}
+			});
+			this.connection?.on('close', async () => {
+				this.connection?.removeAllListeners();
+				this.connection = null;
+				console.log('sshConnection', 'close');
+				if (this.reconnecting) {
+					return;
+				}
+
+				if (tunnelOptionsLocal.reconnectOnError) {
+					console.log('ReconnectOnClose', 'start reconnect');
+					this.connection = await this.reConnect();
+					addListenerSshConnection();
+					console.log('sshConnection', 'reconnected');
+				} else {
+					console.log('close');
+				}
+			});
+		};
+		addListenerSshConnection();
 		const forwardOptionsArray = Array.isArray(forwardOptions) ? forwardOptions : [forwardOptions];
 		const forwardOptionsLocal = forwardOptionsArray.map((item) => {
 			return Object.assign({ dstAddr: '127.0.0.1', srcAddr: '0.0.0.0' }, item);
@@ -223,8 +264,8 @@ export class NodeSSHTunnel {
 						const sshConnection = this.getConnection();
 						try {
 							sshConnection.forwardOut(
-								clientConnection.remoteAddress ?? item.srcAddr,
-								clientConnection.remotePort ?? item.srcPort,
+								item.srcAddr,
+								item.srcPort,
 								item.dstAddr,
 								item.dstPort,
 								(err, stream) => {
@@ -287,9 +328,6 @@ export class NodeSSHTunnel {
 			})
 		);
 	}
-	async disconnect() {
-		this.close();
-	}
 }
 export const createTunnel = async (
 	sshOptions: SshOptions,
@@ -306,26 +344,46 @@ export const createTunnel = async (
 	const tunnelOptionsLocal = Object.assign({ autoClose: false, reconnectOnError: true }, tunnelOptions || {});
 
 	let sshConnection: Client | undefined;
-	const addListenerSshConnection = (sshConnection_: Client) => {
-		if (tunnelOptionsLocal.reconnectOnError) {
-			sshConnection_.on('error', async () => {
-				sshConnection = undefined;
-				// sshConnection.isBroken = true;
-				console.log('sshConnection', 'error');
+	const addListenerSshConnection = () => {
+		sshConnection?.on('error', async (error) => {
+			sshConnection?.removeAllListeners();
+			sshConnection = undefined;
+			// sshConnection.isBroken = true;
+			console.log('sshConnection', 'error');
+			if (reconnecting) {
+				return;
+			}
+			if (tunnelOptionsLocal.reconnectOnError) {
+				console.log('ReconnectOnError', 'start reconnect');
 				sshConnection = await reCreateSSHConnection(sshOptionslocal);
-				addListenerSshConnection(sshConnection);
+				addListenerSshConnection();
 				console.log('sshConnection', 'reconnected');
-			});
-			sshConnection_.on('close', async () => {
-				// sshConnection.isBroken = true;
-				//sshConnection = await createSSHConnection(sshOptionslocal);
-				//addListenerSshConnection(sshConnection);
-			});
-		}
+			} else {
+				console.log('Error', error);
+			}
+		});
+		sshConnection?.on('close', async () => {
+			sshConnection?.removeAllListeners();
+			sshConnection = undefined;
+			// sshConnection.isBroken = true;
+			console.log('sshConnection', 'close');
+			if (reconnecting) {
+				return;
+			}
+
+			if (tunnelOptionsLocal.reconnectOnError) {
+				console.log('ReconnectOnClose', 'start reconnect');
+				sshConnection = await reCreateSSHConnection(sshOptionslocal);
+				addListenerSshConnection();
+				console.log('sshConnection', 'reconnected');
+			} else {
+				console.log('close');
+			}
+		});
 	};
 	try {
 		sshConnection = await createSSHConnection(sshOptionslocal);
-		addListenerSshConnection(sshConnection);
+		addListenerSshConnection();
 	} catch (e) {
 		return Promise.reject('用户名或密码错误, 请检查你的配置信息');
 	}

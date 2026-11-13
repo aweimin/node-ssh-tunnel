@@ -1,0 +1,159 @@
+# ============================================
+# 1. 全局默认：AUTO
+# ============================================
+* text=auto
+
+# ============================================
+# 2. 必须强制 LF 的文件（跨平台兼容）
+# ============================================
+
+# Shell 脚本（Linux/WSL/Git Bash）
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.fish text eol=lf
+
+# Makefile（必须 LF，否则报错）
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Dockerfile
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+
+# 配置文件
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.config text eol=lf
+
+# 版本控制文件
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.gitmodules text eol=lf
+
+# 锁文件（避免冲突）
+*.lock text eol=lf
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+pnpm-lock.yaml text eol=lf
+composer.lock text eol=lf
+Gemfile.lock text eol=lf
+Cargo.lock text eol=lf
+poetry.lock text eol=lf
+
+# ============================================
+# 3. 前端代码文件（强制 LF，与后端一致）
+# ============================================
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.json5 text eol=lf
+*.md text eol=lf
+
+# ============================================
+# 4. 后端代码文件（强制 LF，工作区与仓库一致）
+# ============================================
+*.py text eol=lf
+*.pyi text eol=lf
+*.go text eol=lf
+*.rs text eol=lf
+*.java text eol=lf
+*.kt text eol=lf
+*.c text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.php text eol=lf
+
+# ============================================
+# 5. Windows 脚本强制 CRLF
+# ============================================
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+
+# ============================================
+# 6. 二进制文件（不转换换行符）
+# ============================================
+
+# 图片（SVG 除外，它是文本）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.webp binary
+
+# 字体
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# 文档
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# 压缩包
+*.zip binary
+*.tar binary
+*.tar.gz binary
+*.tgz binary
+*.gz binary
+*.bz2 binary
+*.xz binary
+*.7z binary
+*.rar binary
+
+# 可执行文件
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.o binary
+*.obj binary
+*.class binary
+
+# 其他
+*.jar binary
+*.war binary
+*.ear binary
+*.apk binary
+*.ipa binary
+*.db binary
+*.sqlite binary
+*.pyc binary
+*.pyo binary
+
+# ============================================
+# 7. 文本类但易被误判的文件（明确声明）
+# ============================================
+*.svg text eol=lf
+
+# ============================================
+# 8. 合并策略（谨慎使用）
+# ============================================
+# 注意：union 策略可能导致锁文件损坏，合并后请验证项目
+package-lock.json merge=union
+yarn.lock merge=union
+pnpm-lock.yaml merge=union
+composer.lock merge=union
+Gemfile.lock merge=union

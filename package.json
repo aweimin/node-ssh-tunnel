@@ -7,15 +7,25 @@
 	"unpkg": "dist/index.umd.min.js",
 	"types": "es/index.d.ts",
 	"type": "module",
-	"publishConfig": {
-		"registry": "https://registry.npmjs.org"
-	},
-	"exports": {
+		"exports": {
 		".": {
+			"types": "./es/index.d.ts",
 			"import": "./es/index.js",
 			"require": "./lib/index.js"
 		},
 		"./package.json": "./package.json"
+	},
+	"devEngines": {
+		"packageManager": [
+			{
+				"name": "pnpm",
+				"version": "12.18.0",
+				"onFail": "ignore"
+			}
+		]
+	},
+	"publishConfig": {
+		"registry": "https://registry.npmjs.org"
 	},
 	"files": [
 		"lib/",
@@ -31,7 +41,9 @@
 	"scripts": {
 		"clean": "rimraf lib es dist",
 		"clean:all": "pnpm clean && rimraf  node_modules pnpm-lock.yml",
-		"format": "prettier ./**/*.{js,jsx,tx,tsx} --write",
+		"lint": "eslint src",
+		"format": "prettier ./**/*.{js,jsx,ts,tsx} --write",
+		"test": "jest",
 		"lib": "tsc -outDir lib --target es6 --module commonjs",
 		"es": "tsc -outDir es --target es2024",
 		"build": "pnpm clean && pnpm  rollup",
@@ -48,23 +60,27 @@
 	"license": "MIT",
 	"dependencies": {
 		"node-ssh": "^13.2.1",
-		"ssh2": "^1.16.0"
+		"ssh2": "^1.17.0"
 	},
 	"devDependencies": {
-		"@rollup/plugin-commonjs": "^28.0.3",
+		"@eslint/js": "^10.0.1",
+		"@rollup/plugin-commonjs": "^29.0.3",
 		"@rollup/plugin-json": "^6.1.0",
-		"@rollup/plugin-node-resolve": "^16.0.1",
-		"@rollup/plugin-terser": "^0.4.4",
-		"@rollup/plugin-typescript": "^12.1.2",
-		"@types/node": "^22.14.1",
-		"@types/ssh2": "^1.15.5",
-		"eslint": "^9.24.0",
-		"nodemon": "^3.1.9",
-		"prettier": "3.5.3",
-		"rimraf": "^6.0.1",
-		"rollup": "^4.40.0",
-		"tslib": "^2.8.1",
-		"tsx": "^4.19.3",
-		"typescript": "^5.8.3"
+		"@rollup/plugin-node-resolve": "^16.0.3",
+		"@rollup/plugin-terser": "^1.0.2",
+		"@rollup/plugin-typescript": "^12.3.1",
+		"@types/jest": "^30.0.0",
+		"@types/node": "^24.19.2",
+		"@types/ssh2": "^1.15.6",
+		"eslint": "^10.14.0",
+		"jest": "^30.5.2",
+		"prettier": "3.10.1",
+		"rimraf": "^6.1.4",
+		"rollup": "^4.68.2",
+		"ts-jest": "^29.4.15",
+		"tslib": "^2.9.1",
+		"tsx": "^4.23.15",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "8.72.2"
 	}
 }

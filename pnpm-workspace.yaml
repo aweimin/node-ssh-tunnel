@@ -1,0 +1,15 @@
+# pnpm 11 项目级配置（从 .npmrc 迁入）
+shamefullyHoist: false
+virtualStoreDir: .pnpm
+ignoreScripts: false
+enablePrePostScripts: true
+strictPeerDependencies: false
+autoInstallPeers: false
+saveExact: true
+engineStrict: true
+minimumReleaseAge: 0
+allowBuilds:
+    "@parcel/watcher": true
+    cpu-features: true
+    esbuild: true
+    ssh2: true

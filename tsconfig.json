@@ -1,16 +1,14 @@
 {
 	"compilerOptions": {
-		"target": "esnext",
+		"target": "es2021",
 		"lib": ["es6", "es7", "esnext", "dom"],
 		"allowJs": true,
-		"baseUrl": "./",
 		"jsx": "react-jsx",
 		"declaration": true,
-		"outDir": "./build",
 		"strict": true,
 		"strictNullChecks": true,
 		"module": "esnext",
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"experimentalDecorators": true,
 		"noUnusedParameters": false,
 		"noUnusedLocals": false,

@@ -1,6 +1,6 @@
 {
 	// 换行符 \r\n
-	endOfLine: "crlf",
+	endOfLine: "lf",
 
 	// 每行最大字符数
 	printWidth: 120,

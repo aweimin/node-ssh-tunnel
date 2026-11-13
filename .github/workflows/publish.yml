@@ -1,0 +1,100 @@
+name: Publish npm Package
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            id-token: write
+
+        steps:
+            # 1. Checkout
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            # 2. Setup Node.js
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  package-manager-cache: false
+
+            # 3. Setup pnpm
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 12.18.0
+
+            # 4. Upgrade npm CLI
+            - name: Upgrade npm CLI
+              run: |
+                  npm install -g npm@latest
+                  echo "Node version:"
+                  node --version
+                  echo "npm version:"
+                  npm --version
+                  echo "Registry:"
+                  npm config get registry
+
+            # 5. Clean npm authentication configuration
+            - name: Clean npm authentication configuration
+              shell: bash
+              run: |
+                  npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+
+                  if [ -f "$npmrc" ]; then
+                    echo "Checking npm user configuration: $npmrc"
+                    sed -i '/_authToken/d' "$npmrc"
+                  fi
+
+                  if [ -f ".npmrc" ]; then
+                    echo "Checking project .npmrc"
+                    sed -i '/_authToken/d' ".npmrc"
+                  fi
+
+            # 6. Diagnose OIDC
+            - name: Diagnose npm OIDC
+              run: |
+                  echo "===== Versions ====="
+                  node --version
+                  npm --version
+
+                  echo "===== Registry ====="
+                  npm config get registry
+
+                  echo "===== GitHub OIDC ====="
+                  node -e "console.log({
+                    requestUrl: !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
+                    requestToken: !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN
+                  })"
+
+                  echo "===== npm auth environment ====="
+                  node -e "console.log({
+                    nodeAuthToken: !!process.env.NODE_AUTH_TOKEN
+                  })"
+
+            # 7. Install dependencies
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            # 8. Build
+            - name: Build
+              run: pnpm build
+
+            # 9. Verify package
+            - name: Verify package
+              run: npm pack --dry-run
+
+            # 10. Publish to npm using OIDC
+            - name: Publish to npm
+              run: npm publish --provenance

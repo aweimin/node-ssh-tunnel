@@ -1,6 +1,5 @@
 import cluster from 'node:cluster';
 import http from 'node:http';
-import { availableParallelism } from 'node:os';
 import process from 'node:process';
 
 const numCPUs = 2; //availableParallelism();
@@ -13,7 +12,7 @@ if (cluster.isPrimary) {
 		cluster.fork();
 	}
 
-	cluster.on('exit', (worker, code, signal) => {
+	cluster.on('exit', (worker, _code, _signal) => {
 		console.log(`worker ${worker.process.pid} died`);
 	});
 } else {

@@ -97,4 +97,4 @@ jobs:
 
             # 10. Publish to npm using OIDC
             - name: Publish to npm
-              run: npm publish --provenance
+              run: npm publish --provenance --tag legacy-1x
